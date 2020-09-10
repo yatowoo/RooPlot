@@ -20,6 +20,13 @@ if(DRAW_FLAG):
   c.SetMargin(0.15, 0.02, 0.15, 0.02)
   c.Draw()
 
+fout = ROOT.TFile(dataPath + '/UI-count.root','RECREATE')
+hIstart = ROOT.TH1F('hImin','Minimum/Baseline current;I_{start} (Unit: #muA);N_{SiPM}',10, -0.005,0.095)
+hIop = ROOT.TH1F('hIop','2nd Minimum/Working current;I_{op} (Unit: #muA);N_{SiPM}',10, -0.005,0.095)
+hVmin = ROOT.TH1F('hVmin','Minmum voltage with value of Iop;U_{min} (Unit: V);N_{SiPM}', 15,50,65)
+hVavg = ROOT.TH1F('hVavg','Average voltage with value of Iop;U_{min} (Unit: V);N_{SiPM}', 15,50,65)
+hVmax = ROOT.TH1F('hVmax','Maximum voltage with value of Iop;U_{min} (Unit: V);N_{SiPM}', 15,50,65)
+
 def CalcVop(ui):
   Istart = ui.GetPointY(0) # min. value (=0.02)
   Iop = Istart # second min. current
@@ -34,6 +41,11 @@ def CalcVop(ui):
       Vmax = ui.GetPointX(i-1)
       break
   print("%.2f\t%.2f\t%.1f\t%.1f\t%.1f" % (Istart, Iop, Vmin, (Vmin+Vmax)/2., Vmax))
+  hIstart.Fill(Istart)
+  hIop.Fill(Iop)
+  hVmin.Fill(Vmin)
+  hVavg.Fill((Vmin+Vmax)/2.)
+  hVmax.Fill(Vmax)
 
 for nBoard in range(1,61):
   if(DEBUG_FLAG):
@@ -77,3 +89,11 @@ for nBoard in range(1,61):
     mg.GetYaxis().SetRangeUser(0,0.5)
     lgd.Draw('same')
     ana_util.PrintFigure(dataPath + '/UI_Board' + repr(nBoard))
+
+fout.cd()
+hIstart.Write()
+hIop.Write()
+hVmin.Write()
+hVavg.Write()
+hVmax.Write()
+fout.Close()

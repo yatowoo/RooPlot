@@ -16,7 +16,22 @@ c = ROOT.TCanvas('cUI', 'SiPM UI curve', 1280, 800)
 c.SetMargin(0.15, 0.02, 0.15, 0.02)
 c.Draw()
 
-for nBoard in range(1,61):
+def CalcVop(ui):
+  Istart = ui.GetPointY(0) # min. value (=0.02)
+  Iop = Istart # second min. current
+  for i in range(0,ui.GetN()):
+    Inow = ui.GetPointY(i)
+    if(Inow <= Istart):
+      continue
+    if(Iop == Istart):
+      Iop = Inow
+      Vmin = ui.GetPointX(i)
+    if(Inow > Iop):
+      Vmax = ui.GetPointX(i-1)
+      break
+  print("%.2f\t%.2f\t%.1f\t%.1f\t%.1f" % (Istart, Iop, Vmin, (Vmin+Vmax)/2., Vmax))
+
+for nBoard in range(2,3):
   print('[-] Processing board ' + repr(nBoard) + ' / 60')
   c.Clear()
   mg = ROOT.TMultiGraph()
@@ -40,6 +55,7 @@ for nBoard in range(1,61):
       UI[nBoard][nCh] = ui.Clone('B%dC%d' % (nBoard,nCh))
     f.Close()
     ui = UI[nBoard][nCh]
+    CalcVop(ui)
     ana_util.SetColorAndStyle(ui)
     ui.GetListOfFunctions().At(0).Delete()
     if(ui.FindObject('stats')):

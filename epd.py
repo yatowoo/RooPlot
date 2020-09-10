@@ -7,8 +7,8 @@ import ana_util
 # Plot UI curve
 ana_util.ALICEStyle()
 
-# Working path : /mnt/e/WORKSPACE/R710/STAR-EPD/SiPMSummary
-dataPath = '/mnt/e/WORKSPACE/R710/STAR-EPD/SiPMSummary'
+# Working path : INPUT from command-line
+dataPath = sys.argv[1]
 
 UI = [ [0 for col in range(16)] for row in range(61)]
 
@@ -28,6 +28,9 @@ for nBoard in range(1,61):
   ana_util.MARKER = ana_util.SelectMarker()
   for nCh in range(0,16):
     f = ROOT.TFile(dataPath + '/Board%d/SiPM%d.root' % (nBoard, nCh))
+    if(not f.IsOpen()):
+      print('[X] Missing Board %d SiPM %d' % (nBoard, nCh))
+      continue
     ui = f.Get('UI_S%dC%d' % (nBoard,nCh))
     if(not ui):
       print('[X] Missing Board %d SiPM %d' % (nBoard, nCh))

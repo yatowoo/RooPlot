@@ -23,9 +23,9 @@ if(DRAW_FLAG):
 fout = ROOT.TFile(dataPath + '/UI-count.root','RECREATE')
 hIstart = ROOT.TH1F('hImin','Minimum/Baseline current;I_{start} (Unit: #muA);N_{SiPM}',10, -0.005,0.095)
 hIop = ROOT.TH1F('hIop','2nd Minimum/Working current;I_{op} (Unit: #muA);N_{SiPM}',10, -0.005,0.095)
-hVmin = ROOT.TH1F('hVmin','Minmum voltage with value of Iop;U_{min} (Unit: V);N_{SiPM}', 15,50,65)
-hVavg = ROOT.TH1F('hVavg','Average voltage with value of Iop;U_{min} (Unit: V);N_{SiPM}', 15,50,65)
-hVmax = ROOT.TH1F('hVmax','Maximum voltage with value of Iop;U_{min} (Unit: V);N_{SiPM}', 15,50,65)
+hVmin = ROOT.TH1F('hVmin','Minmum voltage with value of Iop;U_{min} (Unit: V);N_{SiPM}', 30,50,65)
+hVavg = ROOT.TH1F('hVavg','Average voltage with value of Iop;U_{min} (Unit: V);N_{SiPM}', 30,50,65)
+hVmax = ROOT.TH1F('hVmax','Maximum voltage with value of Iop;U_{min} (Unit: V);N_{SiPM}', 30,50,65)
 
 def CalcVop(ui):
   Istart = ui.GetPointY(0) # min. value (=0.02)
@@ -36,7 +36,7 @@ def CalcVop(ui):
       continue
     if(Iop == Istart):
       Iop = Inow
-      Vmin = ui.GetPointX(i)
+      Vmin = ui.GetPointX(i-1)
     if(Inow > Iop):
       Vmax = ui.GetPointX(i-1)
       break

@@ -1,7 +1,7 @@
 # ROOT painter for drawing objects in PDF file
 
 # Basic Usage:
-# p = Painter(canvas, "out.pdf")
+# p = Painter()
 # p.PrintCover()
 # p.DrawHist(h1)
 # p.PrintBackCover()
@@ -9,9 +9,14 @@
 from ROOT import TCanvas, TPaveText
 from ROOT import gPad, gStyle
 
+def NewCanvas(name="c1_painter", title="New Canvas", winX=1600, winY=1000, **kwargs):
+  return TCanvas(name, title, winX,winY)
+
+# Params: ROOT.TCanvas, PDF output filename
+# - for new canvas: name, title, winX, winY
 class Painter:
-  def __init__(self, canvas : TCanvas, printer : string, **kwargs):
-    self.canvas = canvas
+  def __init__(self, canvas = None, printer = "out.pdf", **kwargs):
+    self.canvas = canvas if canvas is not None else NewCanvas(**kwargs)
        # Output PDF in 1 file
     self.printer = printer if printer.endswith(".pdf") else printer +".pdf"
     # Configuration

@@ -3,16 +3,58 @@
 # Utility lib for general purpose in post-processing
 
 import ROOT
+from ROOT import TMath
   # Colors
 from ROOT import kBlack, kRed, kBlue, kGreen, kViolet, kCyan, kOrange, kPink, kYellow, kMagenta, kGray, kWhite
+  # Markers
 from ROOT import kFullCircle, kFullSquare, kOpenCircle, kOpenSquare, kOpenDiamond, kOpenCross, kFullCross, kFullDiamond, kFullStar, kOpenStar, kOpenCircle, kOpenSquare, kOpenTriangleUp, kOpenTriangleDown, kOpenStar, kOpenDiamond, kOpenCross, kOpenThreeTriangles, kOpenFourTrianglesX, kOpenDoubleDiamond, kOpenFourTrianglesPlus, kOpenCrossX, kFullTriangleUp, kOpenTriangleUp, kFullCrossX, kOpenCrossX, kFullTriangleDown, kFullThreeTriangles, kOpenThreeTriangles, kFullFourTrianglesX, kFullDoubleDiamond, kFullFourTrianglesPlus
-import sys, os, time, math, json, logging
+  # Lines
+from ROOT import kSolid, kDashed, kDotted, kDashDotted
+  # Objects
+from ROOT import TCanvas, TPaveText
+from ROOT import gPad, gStyle
+
+import sys, os, datetime, math, json, logging
 from array import array
 
-# Global style
-ROOT.gStyle.SetOptStat(0)
-ROOT.gStyle.SetPalette()
+# Color & Style
+# Select color and marker style in pre-defined group
+  # Use Bool isNEW to reset the index
+COLOR_SET_DEFAULT = [kBlack, kRed, kBlue, kGreen+3, kOrange, kViolet, kCyan, kOrange-6, kPink]
+COLOR_SET_ALICE = [kBlack, kRed+1 , kBlue+1, kGreen+3, kMagenta+1, kOrange-1,kCyan+2,kYellow+2]
+COLOR_SET_ALICE_FILL = [kGray+1,  kRed-10, kBlue-9, kGreen-8, kMagenta-9, kOrange-9,kCyan-8,kYellow-7] # For systematic bands
+COLOR_SET = COLOR_SET_DEFAULT
+COLOR_INDEX = -1
+def SelectColor(COLOR_INDEX = -1):
+  while(COLOR_INDEX < 100):
+    yield COLOR_SET[COLOR_INDEX % len(COLOR_SET)]
+    COLOR_INDEX += 1
 
+# Marker Style
+kRound,  kBlock, kDelta, kNabla, kPenta, kDiamond, kCross, kClover, kClover4, kStar, kIronCross, kXMark = 20, 21, 22, 23, 29, 33, 34, 39, 41, 43, 45, 47
+kRoundHollow, kBlockHollow, kDeltaHollow, kNablaHollow, kPentaHollow, kDiamondHollow, kCrossHollow, kCloverHollow, kClover4Hollow, kStarHollow, kIronCrossHollow, kXMarkHollow = 24, 25, 26, 32, 30, 27, 28, 37, 40, 42, 44, 46
+MARKER_SET_DEFAULT = [kFullCircle, kOpenSquare, kCross, kFullTriangleUp, kOpenDiamond, kFullStar, kFullSquare, kOpenCross, kFullDiamond, kFullCrossX]
+MARKER_SET_ALICE = [kFullCircle, kFullSquare, kOpenCircle, kOpenSquare, kOpenDiamond, kOpenCross, kFullCross, kFullDiamond, kFullStar, kOpenStar]
+DATA_MARKER = [kFullCircle, kFullSquare, kFullTriangleUp, kFullTriangleDown, kFullStar, kFullDiamond, kFullCross, kFullThreeTriangles, kFullFourTrianglesX, kFullDoubleDiamond, kFullFourTrianglesPlus, kFullCrossX]
+MC_MARKER = [kOpenCircle, kOpenSquare, kOpenTriangleUp, kOpenTriangleDown, kOpenStar, kOpenDiamond, kOpenCross, kOpenThreeTriangles, kOpenFourTrianglesX, kOpenDoubleDiamond, kOpenFourTrianglesPlus, kOpenCrossX]
+MARKER_SET = MARKER_SET_DEFAULT
+MARKER_INDEX = -1
+def SelectMarker(MARKER_INDEX = 0):
+  while(MARKER_INDEX < 100):
+    yield MARKER_SET[MARKER_INDEX % len(MARKER_SET)]
+    MARKER_INDEX += 1
+COLOR = SelectColor()
+MARKER = SelectMarker()
+# Line Style
+LINE_STYLE_SET = [kSolid, kDashed, kDotted, kDashDotted]
+LINE_STYLE_INDEX = -1
+def SelectLine(LINE_STYLE_INDEX = 0):
+  while(LINE_STYLE_INDEX < 100):
+    yield LINE_STYLE_SET[LINE_STYLE_INDEX % len(LINE_STYLE_SET)]
+    LINE_STYLE_INDEX += 1
+LINE = SelectLine()
+
+# From ALICE collaboration editor guidelines
 def ALICEStyle(graypalette = False):
   print("[-] INFO - Setting ALICE figure style")
   ROOT.gStyle.Reset("Plain")
@@ -52,23 +94,56 @@ def ALICEStyle(graypalette = False):
   ROOT.gStyle.SetLegendFillColor(kWhite)
   ROOT.gStyle.SetLegendFont(42)
 
-def InitALICELabel(x1 = 0.02, y1 = -0.18, x2 = 0.35, y2 = -0.02, size=0.04, type="perf"):
+def InitALICELabel(x1 = 0.02, y1 = 0.03, x2 = 0.35, y2 = 0.1, size=0.04, align=13, type="perf", pos='lt'):
+  """Draw text relative to pad edges
+  
+  Position:
+    x1 - Label pave to near edge X
+    x2 - Label pave to away edge X
+    y1 - Label pave to near edge Y
+    y2 - Label pave to away edge Y
+  """
   PAD_EDGE_LEFT = ROOT.gPad.GetLeftMargin()
   PAD_EDGE_RIGHT = 1 - ROOT.gPad.GetRightMargin()
   PAD_EDGE_BOTTOM   = ROOT.gPad.GetBottomMargin()
   PAD_EDGE_TOP   = 1 - ROOT.gPad.GetTopMargin()
-  pTxtALICE = ROOT.TPaveText(PAD_EDGE_LEFT + x1, PAD_EDGE_TOP + y1, PAD_EDGE_LEFT + x2, PAD_EDGE_TOP + y2,"brNDC")
+  if pos == 'lt': # Left Top
+    xlower = PAD_EDGE_LEFT + x1
+    xupper = PAD_EDGE_LEFT + x2
+    ylower = PAD_EDGE_TOP - y2
+    yupper = PAD_EDGE_TOP - y1
+  elif pos == 'rt':
+    xlower = PAD_EDGE_RIGHT - x2
+    xupper = PAD_EDGE_RIGHT - x1
+    ylower = PAD_EDGE_TOP + y1
+    yupper = PAD_EDGE_TOP + y2
+  elif pos == 'lb':
+    xlower = PAD_EDGE_LEFT + x1
+    xupper = PAD_EDGE_LEFT + x2
+    ylower = PAD_EDGE_BOTTOM + y1
+    yupper = PAD_EDGE_BOTTOM + y2
+  elif pos == 'rb':
+    xlower = PAD_EDGE_RIGHT - x2
+    xupper = PAD_EDGE_RIGHT - x1
+    ylower = PAD_EDGE_BOTTOM + y1
+    yupper = PAD_EDGE_BOTTOM + y2
+  else:
+    xlower, ylower, xupper, yupper = x1, y1, x2, y2
+  pTxtALICE = ROOT.TPaveText(xlower, ylower, xupper, yupper,"brNDC")
   pTxtALICE.SetBorderSize(0)
   pTxtALICE.SetFillColor(0)
+  pTxtALICE.SetFillStyle(0)
   pTxtALICE.SetTextSize(size)
   pTxtALICE.SetTextFont(42) # Helvetica
-  pTxtALICE.SetTextAlign(13) # Top Left
+  pTxtALICE.SetTextAlign(align) # Top Left
   if(type == "perf"):
     text = "ALICE Performance"
   elif(type == "simul"):
     text = "ALICE Simulation"
   elif(type == "prel"):
     text = "ALICE Preliminary"
+  else:
+    text = type
   txt = pTxtALICE.AddText(text)
   txt.SetTextFont(42) # Helvetica Bold
   return pTxtALICE
@@ -78,24 +153,6 @@ def PrintFigure(name):
   ROOT.gPad.SaveAs(name + ".eps")
   ROOT.gPad.SaveAs(name + ".png")
   ROOT.gPad.SaveAs(name + ".root")
-
-# J/psi pT bins : 0 - 50, binw = 0.2, 0.5, 1, 2, 5
-BINNING_JPSI_PT = [0.2*x for x in range(0,25,1)]
-BINNING_JPSI_PT += [ 0.1*x for x in range(50,100,5)]
-BINNING_JPSI_PT += list(range(10, 15, 1))
-BINNING_JPSI_PT += list(range(15, 25, 2))
-BINNING_JPSI_PT += list(range(25, 55, 5))
-BINNING_JPSI_PT = array('d', BINNING_JPSI_PT) # Convert to double*
-
-# Jet pT bins - Edge=0, 0.3, 1, 3, 10, 20, 50, 100
-BINNING_JET_PT = [0.05*x for x in range(0,6,1)]
-BINNING_JET_PT += [ 0.1*x for x in range(3,10,1)]
-BINNING_JET_PT += [ 0.2*x for x in range(5,15,1)]
-BINNING_JET_PT += [ x for x in range(3,10,1)]
-BINNING_JET_PT += list(range(10,20,2))
-BINNING_JET_PT += list(range(20,50,5))
-BINNING_JET_PT += list(range(50,110,10))
-BINNING_JET_PT = array('d', BINNING_JET_PT)
 
 def ResetLegend(lgd, xlow, ylow, xup, yup):
   lgd.Clear()
@@ -146,34 +203,6 @@ def HistCount(hist, xlow, xup, err = None):
     return hist.Integral(xBinLow, xBinUp)
   else:
     return hist.IntegralAndError(xBinLow, xBinUp, err)
-
-# Select color and marker style in pre-defined group
-  # Use Bool isNEW to reset the index
-COLOR_SET = [kBlack, kRed, kBlue, kGreen+3, kOrange, kViolet, kCyan, kOrange-6, kPink]
-COLOR_SET_ALICE = [kBlack, kRed+1 , kBlue+1, kGreen+3, kMagenta+1, kOrange-1,kCyan+2,kYellow+2]
-COLOR_SET_ALICE_FILL = [kGray+1,  kRed-10, kBlue-9, kGreen-8, kMagenta-9, kOrange-9,kCyan-8,kYellow-7] # For systematic bands
-COLOR_INDEX = -1
-def SelectColor(COLOR_INDEX = -1):
-  while(COLOR_INDEX < 100):
-    yield COLOR_SET[COLOR_INDEX % len(COLOR_SET)]
-    COLOR_INDEX += 1
-# Marker Style
-kRound,  kBlock, kDelta, kNabla, kPenta, kDiamond, kCross, kClover, kClover4, kStar, kIronCross, kXMark = 20, 21, 22, 23, 29, 33, 34, 39, 41, 43, 45, 47
-kRoundHollow, kBlockHollow, kDeltaHollow, kNablaHollow, kPentaHollow, kDiamondHollow, kCrossHollow, kCloverHollow, kClover4Hollow, kStarHollow, kIronCrossHollow, kXMarkHollow = 24, 25, 26, 32, 30, 27, 28, 37, 40, 42, 44, 46
-MARKER_SET = [kFullCircle, kOpenSquare, kCross, kFullTriangleUp, kOpenDiamond, kFullStar, kFullSquare, kOpenCross, kFullDiamond, kFullCrossX]
-
-MARKER_SET_ALICE = [kFullCircle, kFullSquare, kOpenCircle, kOpenSquare, kOpenDiamond, kOpenCross, kFullCross, kFullDiamond, kFullStar, kOpenStar]
-
-DATA_MARKER = [kFullCircle, kFullSquare, kFullTriangleUp, kFullTriangleDown, kFullStar, kFullDiamond, kFullCross, kFullThreeTriangles, kFullFourTrianglesX, kFullDoubleDiamond, kFullFourTrianglesPlus, kFullCrossX]
-
-MC_MARKER = [kOpenCircle, kOpenSquare, kOpenTriangleUp, kOpenTriangleDown, kOpenStar, kOpenDiamond, kOpenCross, kOpenThreeTriangles, kOpenFourTrianglesX, kOpenDoubleDiamond, kOpenFourTrianglesPlus, kOpenCrossX]
-
-def SelectMarker(MARKER_INDEX = 0):
-  while(MARKER_INDEX < 100):
-    yield MARKER_SET[MARKER_INDEX % len(MARKER_SET)]
-    MARKER_INDEX += 1
-COLOR = SelectColor()
-MARKER = SelectMarker()
 
 def SetColorAndStyle(obj, c = None, s = None, size = 1.0):
   if(c is None):
